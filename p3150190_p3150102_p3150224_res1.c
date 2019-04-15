@@ -19,6 +19,7 @@ struct timespec startStandBy, stopStandBy;
 struct timespec startHandlingTime, stopHandlingTime;
 pthread_mutex_t lock;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
  
 
 
@@ -126,6 +127,21 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 			printf("ERROR: return code from pthread_mutex_lock is %d\n", rc);
 			exit(-1);		
 		}
+
+	//perimenei mexri na vrei diathesimo tamis
+ 	while (Ncash == 0) {
+ 		printf("Customer %d, didnt find avaliable cashier .Blocked...\n", id);
+ 		rc = pthread_cond_wait(&condForCash, &lock);
+		if (rc != 0) {
+			printf("ERROR: return code from pthread_cond_wait is %d\n", rc);
+			exit(-1);		
+		}
+ 	}
+ 	printf("Costumer %d, is being served from cashier.\n",id);
+ 	//meiwnei to cashier kata 1
+	Ncash--;
+
+	
 	//an exei desmeftei h thesh
 	if(checkIfSeatReserved==1){
 		//dhmiourgei tuxaious arithmous metaksi 1-10.	
@@ -161,28 +177,61 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 	
 		}
 
-	}	
-	
-
-	
-
-	
-
- 	printf("Customer %d successfuly served! \n", id);
- 	Ntel++;
- 	rc = pthread_cond_signal(&cond); //stelnw to signal gia na parei kapoio allo thread seira
-	if (rc != 0) {
-			printf("ERROR: return code from pthread_cond_signal is %d\n", rc);
-			exit(-1);		
-		}
-
+	}
 	rc = pthread_mutex_unlock(&lock);//telos mutex 4
 	if (rc != 0) {
 			printf("ERROR: return code from pthread_mutex_unlock is %d\n", rc);
 			exit(-1);		
 		}
+	
+	
 
-	rc = pthread_mutex_lock(&lock); //mutex 5 gia handling time
+	//epilegei tuxaio xrono gia sleep gia cashier
+ 	int randomWaitTimeCash;
+	int randCash=rand_r(&seed)%tcashhigh;
+	if(randCash>=tcashlow){
+		randomWaitTimeCash=randCash;
+  
+         }else{
+		randomWaitTimeCash=tcashlow +randCash;	
+	}
+ 	
+
+ 	sleep(randomWaitTimeCash); //perimenei gia tyxaio xrono apo 2-4sec
+	printf("Tha perimenw %d sec apo cashier\n",randomWaitTimeCash);
+	
+	rc = pthread_mutex_lock(&lock); //mutex 5 gia swsth enhmerwsh Ntel kai Ncash
+	if (rc != 0) {
+			printf("ERROR: return code from pthread_mutex_lock is %d\n", rc);
+			exit(-1);		
+		}
+	
+ 	printf("Customer %d successfuly served! \n", id);
+ 	
+	Ncash++;
+	rc = pthread_cond_signal(&condForCash); //stelnw to signal gia na parei kapoio allo thread seira gia cashier
+	if (rc != 0) {
+			printf("ERROR: return code from pthread_cond_signal is %d\n", rc);
+			exit(-1);		
+		}
+	
+	Ntel++;
+ 	rc = pthread_cond_signal(&cond); //stelnw to signal gia na parei kapoio allo thread seira
+	if (rc != 0) {
+			printf("ERROR: return code from pthread_cond_signal is %d\n", rc);
+			exit(-1);		
+		}
+	rc = pthread_mutex_unlock(&lock);//telos mutex 5
+	if (rc != 0) {
+			printf("ERROR: return code from pthread_mutex_unlock is %d\n", rc);
+			exit(-1);		
+		}
+
+
+	
+
+
+	rc = pthread_mutex_lock(&lock); //mutex 6 gia handling time
 	if (rc != 0) {
 			printf("ERROR: return code from pthread_mutex_lock is %d\n", rc);
 			exit(-1);		
@@ -197,7 +246,7 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
       
     	
 
-	rc = pthread_mutex_unlock(&lock);//telos mutex 5
+	rc = pthread_mutex_unlock(&lock);//telos mutex 6
 	if (rc != 0) {
 			printf("ERROR: return code from pthread_mutex_unlock is %d\n", rc);
 			exit(-1);		
@@ -358,6 +407,7 @@ int main(int argc, char** argv) {
     free(standByTime); 
     pthread_mutex_destroy(&lock);
     pthread_cond_destroy(&cond);
+    pthread_cond_destroy(&condForCash);
 
 return 0;
 
