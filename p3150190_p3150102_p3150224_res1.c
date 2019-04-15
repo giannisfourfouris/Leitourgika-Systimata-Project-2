@@ -17,6 +17,7 @@ int *handlingTime;
 int counterSeat=0;
 struct timespec startStandBy, stopStandBy;
 struct timespec startHandlingTime, stopHandlingTime;
+struct timespec startStandByCashier, stopStandByCashier;
 pthread_mutex_t lock;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
@@ -127,6 +128,11 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
 			printf("ERROR: return code from pthread_mutex_lock is %d\n", rc);
 			exit(-1);		
 		}
+	//ksekinaw kai metraw thn wra anamonis gia ton cashier
+       		if( clock_gettime( CLOCK_REALTIME, &startStandByCashier) == -1 ) {
+    		  perror( "clock gettime" );
+     		 exit( EXIT_FAILURE );
+   		 }
 
 	//perimenei mexri na vrei diathesimo tamis
  	while (Ncash == 0) {
@@ -221,6 +227,13 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
 			printf("ERROR: return code from pthread_cond_signal is %d\n", rc);
 			exit(-1);		
 		}
+	//teleiwnei to xrono anamonis gia cashier	
+	if( clock_gettime( CLOCK_REALTIME, &stopStandByCashier) == -1 ) {
+      		perror( "clock gettime" );
+      		exit( EXIT_FAILURE );
+    	}
+	//ypologizwi to xrono anamonis kai ton apothikevei sto pinaka StandBy
+        standByTime[id-1] =standByTime[id-1]+ ( stopStandByCashier.tv_sec - startStandByCashier.tv_sec );
 	rc = pthread_mutex_unlock(&lock);//telos mutex 5
 	if (rc != 0) {
 			printf("ERROR: return code from pthread_mutex_unlock is %d\n", rc);
