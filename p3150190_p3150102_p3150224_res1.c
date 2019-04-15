@@ -146,6 +146,13 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
  	printf("Costumer %d, is being served from cashier.\n",id);
  	//meiwnei to cashier kata 1
 	Ncash--;
+	//teleiwnei to xrono anamonis gia cashier	
+	if( clock_gettime( CLOCK_REALTIME, &stopStandByCashier) == -1 ) {
+      		perror( "clock gettime" );
+      		exit( EXIT_FAILURE );
+    	}
+	//ypologizwi to xrono anamonis kai ton apothikevei sto pinaka StandBy
+        standByTime[id-1] =standByTime[id-1]+ ( stopStandByCashier.tv_sec - startStandByCashier.tv_sec );
 
 	
 	//an exei desmeftei h thesh
@@ -227,13 +234,7 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
 			printf("ERROR: return code from pthread_cond_signal is %d\n", rc);
 			exit(-1);		
 		}
-	//teleiwnei to xrono anamonis gia cashier	
-	if( clock_gettime( CLOCK_REALTIME, &stopStandByCashier) == -1 ) {
-      		perror( "clock gettime" );
-      		exit( EXIT_FAILURE );
-    	}
-	//ypologizwi to xrono anamonis kai ton apothikevei sto pinaka StandBy
-        standByTime[id-1] =standByTime[id-1]+ ( stopStandByCashier.tv_sec - startStandByCashier.tv_sec );
+
 	rc = pthread_mutex_unlock(&lock);//telos mutex 5
 	if (rc != 0) {
 			printf("ERROR: return code from pthread_mutex_unlock is %d\n", rc);
