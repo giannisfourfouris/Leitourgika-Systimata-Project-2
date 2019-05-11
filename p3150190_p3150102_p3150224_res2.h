@@ -2,7 +2,7 @@
 
 int Ntel=8;
 int Ncash=4;
-//int Nseat=10;
+int Nseat=10;
 int NzoneA=5;
 int NzoneB=10;
 int NzoneC=10;
@@ -20,8 +20,6 @@ int tcashlow=2;
 int tcashhigh=4;
 int Pcardsuccess=9;
 
-//afto tha vgei!!
-int Cseat=20;
-int Nseat=250;
+
 
 

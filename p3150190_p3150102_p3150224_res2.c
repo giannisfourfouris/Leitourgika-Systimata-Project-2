@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
-#include"p3150190_p3150102_p3150224_res1.h"
+#include"p3150190_p3150102_p3150224_res2.h"
 #include <pthread.h>
 
 int Ncust;
@@ -14,7 +14,13 @@ int rc;
 int *threadId;
 int *standByTime;
 int *handlingTime;
-int counterSeat=0;
+int fullZoneA=0;
+int fullZoneB=0;
+int fullZoneC=0;
+int percentageCardError=0;
+int percentageSuccessfulTransaction=0;
+int percentageFullZoneError=0;
+int percentageConsecutiveSeatsError=0;
 struct timespec startStandBy, stopStandBy;
 struct timespec startHandlingTime, stopHandlingTime;
 struct timespec startStandByCashier, stopStandByCashier;
@@ -29,8 +35,8 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
  * vlepei kai na apothikevei theseis, ypologisei arithmo sunalagwn kai
  * prosthetei sto tamio ta leftta
 */
- void *customer(void *x){
- 	int id = (int *)x;
+ void *customer(void *x){Το πρώτο ελέγχει για διαθέσιμους τηλεφωνητές μπλοκάροντας τα thread που δεν εξυπηρετούνται από τους 8 υπάρχοντες τηλεφωνητές. 
+ 	int id = (int *)x;Το πρώτο ελέγχει για διαθέσιμους τηλεφωνητές μπλοκάροντας τα thread που δεν εξυπηρετούνται από τους 8 υπάρχοντες τηλεφωνητές. 
 	//mutex 1: koitaei gia diarthesimous thlefwnhtes
  	rc = pthread_mutex_lock(&lock);
 	if (rc != 0) {
@@ -98,29 +104,111 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
 			exit(-1);		
 	}
         int checkIfSeatReserved=0;
- 	int lastSeat=(counterSeat+randomTicketNumber);
-	for(int i=counterSeat; i<lastSeat;i++){
-		if(counterSeat>Nseat){
-			//elegxw an to theatro einai gemato 
-			printf(" Customer ID: %d Reservation canceled.The theater is full.\n",id);
-			break;	
-		}else if(Nseat-counterSeat<randomTicketNumber){ 
-			//elegxw an exei arketes theseis
-			printf("Customer ID: %d Reservation canceled because there are not enough available seats\n.",id);
-			break;
-		}else{ 
-			//desmevw theseis
-			seatArray[i]=id;
-			//printf("Eimai to seatArray i: %d kai eimai piasmenos apo to pelati %d \n",i,seatArray[i]);
-			checkIfSeatReserved=1;	
-			
-		}
- 	}
+ 	
+	//ftiaxnei arithmus apo 1 mexri 10
+	int randPzone= (rand_r(&seed)%9)+1;
+	int flagPzone= 0;
+	int Cseat=0;
+	//epilegei mia zwni me tis parakatw pithanotites
+	if(randPzone<=PzoneA){
+		Cseat=CzoneA;
+		flagPzone=1;
+		
+	}else if(randPzone>PzoneA && randPzone<=PzoneB){
+		Cseat=CzoneB;	
+		flagPzone=2;
+		
+	}else{
+		Cseat=CzoneC;
+		flagPzone=3;
+		
+	}
+
 	rc = pthread_mutex_unlock(&lock);//telos mutex 3
 	if (rc != 0) {
 			printf("ERROR: return code from pthread_mutex_unlock is %d\n", rc);
 			exit(-1);		
 		}
+	Το πρώτο ελέγχει για διαθέσιμους τηλεφωνητές μπλοκάροντας τα thread που δεν εξυπηρετούνται από τους 8 υπάρχοντες τηλεφωνητές. 
+	rc = pthread_mutex_lock(&lock); //mutex 6: kleisimo thesewn afou exoume epileksei zwni
+	if (rc != 0) {
+			printf("ERROR: return code from pthread_mutex_lock is %d\n", rc);
+			exit(-1);		
+		}
+	int bound=0; //gia ton prosdiorismo telous kathe grammis
+	int lastSeat=0;
+	int counterSeat=0;
+		
+	
+	if(fullZoneA>50 || fullZoneB>100 || fullZoneC>100){
+		percentageFullZoneError=percentageFullZoneError+1;
+		printf("The selected zone is full");	
+	
+	}else{
+			
+	
+		//elegxos se poia zwni einai
+		if(flagPzone==1){
+			//elegxos eleutheris thesis se kathe seira tis zwnis
+			 for (int i = 0; i < NzoneA*Nseat; i++) {
+				bound=i/10; //ipologismos grammis
+				
+				//elegxos gia kenes theseis k an mas kanoun se arithmo
+        	        	if ((seatArray[i] == 0) && ((i + randomTicketNumber) <= ((bound+1)*Nseat))&&(i>=(bound*Nseat))){
+					//desmeusi thesewn                    		
+					for (int y = i; y < i + randomTicketNumber; y++) {
+        	             		   seatArray[y] = id;
+        	            		}
+				checkIfSeatReserved=1;
+				lastSeat= i+randomTicketNumber;
+				counterSeat= i;
+				
+        	           	break;
+        	        	}
+			}
+		}
+		else if(flagPzone==2){
+			for (int i = NzoneA*Nseat; i < ((NzoneB*Nseat)+(NzoneA*Nseat)); i++) {
+				bound=i/10;
+        	        	if ((seatArray[i] == 0) && ((i + randomTicketNumber) <= ((bound+1)*Nseat))&&(i>=(bound*Nseat))){
+        	            		for (int y = i; y < i + randomTicketNumber; y++) {
+        	             		   seatArray[y] = id;
+        	            		}
+				checkIfSeatReserved=1;
+				lastSeat= i+randomTicketNumber;
+				counterSeat= i;
+			
+        	           	break;
+        	        	}
+			}
+		}
+		else if(flagPzone==3){
+			for (int i = ((NzoneB*Nseat)+(NzoneA*Nseat)); i < ((NzoneB*Nseat)+(NzoneA*Nseat)+(NzoneC*Nseat)); i++) {
+				bound=i/10;
+        	        	if ((seatArray[i] == 0) && ((i + randomTicketNumber) <= ((bound+1)*Nseat))&&(i>=(bound*Nseat))){
+        	            		for (int y = i; y < i + randomTicketNumber; y++) {
+        	             		   seatArray[y] = id;
+        	            		}
+				checkIfSeatReserved=1;
+				lastSeat= i+randomTicketNumber;
+				counterSeat= i;
+				
+        	           	break;
+        	        	}
+			}
+		}
+		
+	
+	}
+
+
+	rc = pthread_mutex_unlock(&lock);//telos mutex 6
+	if (rc != 0) {
+			printf("ERROR: return code from pthread_mutex_unlock is %d\n", rc);
+			exit(-1);		
+		}
+
+
 	//an desmefthkan theseis tote proxwraw sthn plhrwmh
 	//teleiwnw me to searching kai to kleisimo twn thesewn
  	rc = pthread_mutex_lock(&lock); //mutex 4: se periptwsh pou exei theseis enhmwrwsh account, arithmo sunalagis kai gia tipoma
@@ -134,7 +222,7 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
      		 exit( EXIT_FAILURE );
    		 }
 
-	//perimenei mexri na vrei diathesimo tamis
+	//perimenei mexri na vrei diathesimo tamia
  	while (Ncash == 0) {
  		printf("Customer %d, didnt find avaliable cashier .Blocked...\n", id);
  		rc = pthread_cond_wait(&condForCash, &lock);
@@ -165,6 +253,7 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
 		if(randomPercentage>Pcardsuccess){
 			//elegxw an to h plhrwmh egine apodekth. An den egine apodekth tote ksedesmevw tis theseis.
 			printf("Customer ID: %d Transaction rejected because the credit card was declined.\n",id);
+			percentageCardError=percentageCardError+1;
 			for(int i=lastSeat-1; i>=counterSeat;i--){
 				seatArray[i]=0;
 			}
@@ -180,16 +269,19 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
 			printf("and the total amount is %d.\n",Cseat*randomTicketNumber);
 			//enimerwsi tou logariasmou
 			account= account + (Cseat*randomTicketNumber);
-			//enhmerwnw to counterSeat gia na kserw meta apo poia thesei toy pinaka exw kenes theseis
-			counterSeat=lastSeat;
-			//se periptwsh pou einai gemato to theatro auksanw to counterSeat 
-			//wste sthn epomenh epanalhpsh na kserei oti einai gemato
-			if(counterSeat==Nseat){
-				counterSeat=251;
+			percentageSuccessfulTransaction=percentageSuccessfulTransaction+1;
+			if(flagPzone==1){
+				fullZoneA= fullZoneA + randomTicketNumber;
+			}else if(flagPzone==2){
+				fullZoneB= fullZoneB + randomTicketNumber;
+			}else{
+				fullZoneC= fullZoneC + randomTicketNumber;
 			}
-	
 		}
 
+	}else{
+		printf("Customer ID: %d Transaction rejected because not enough consecutive seats were found.\n",id);
+		percentageConsecutiveSeatsError=percentageConsecutiveSeatsError+1;
 	}
 	rc = pthread_mutex_unlock(&lock);//telos mutex 4
 	if (rc != 0) {
@@ -211,7 +303,7 @@ pthread_cond_t condForCash = PTHREAD_COND_INITIALIZER;
  	
 
  	sleep(randomWaitTimeCash); //perimenei gia tyxaio xrono apo 2-4sec
-	printf("Tha perimenw %d sec apo cashier\n",randomWaitTimeCash);
+	
 	
 	rc = pthread_mutex_lock(&lock); //mutex 5 gia swsth enhmerwsh Ntel kai Ncash
 	if (rc != 0) {
@@ -387,15 +479,19 @@ int main(int argc, char** argv) {
 
 	}
         printf("Main: All threads successfuly return!\n");
-	//emfanisi thesis kai pelati
-	//an to counter einai 251 dhladg olos o pinakas gematos
-	//tote to epanaferw 250 gia na einai entaksei to tupwma
-	if(counterSeat==251){
-		counterSeat=Nseat;
-	}
-	for(int i=0;i<counterSeat;i++){
-		
-		printf("Seat no%d - Customer id: %d \n",i+1,seatArray[i]);
+	//emfanisi zwnis, thesis kai pelati
+	
+	for(int i=0;i<250;i++){
+			
+		if(i<50){
+			printf("Zone A - Seat no%d - Customer id: %d \n",i+1,seatArray[i]);  	
+		}else if(i>=50 && i<150){
+			printf("Zone B - Seat no%d - Customer id: %d \n",i+1,seatArray[i]);
+		}else{
+			printf("Zone C - Seat no%d - Customer id: %d \n",i+1,seatArray[i]);
+		} 	
+
+
 	}
 	//arxikopoihsh duo metavlhtwn gia ypologismo mesoy xronou anamonis kai eksyphrethshs
 	double sumStandBy=0;
@@ -409,9 +505,11 @@ int main(int argc, char** argv) {
 	printf("Total Profit : %d$\n",account);
 	printf("Average Stand By Time Per Customer: %lf sec\n",sumStandBy/Ncust);
 	printf("Average Handling Time Per Customer: %lf sec\n",sumHandling/Ncust);
-
-
-
+	
+	printf("Percentage of successful transactions: %d/%d\n", percentageSuccessfulTransaction,Ncust); 	
+	printf("Percentage of transactions declined for credit card reasons: %d/%d \n", percentageCardError,Ncust);
+	printf("Percentage of transactions declined because of full zone: %d/%d \n", percentageFullZoneError,Ncust);
+	printf("Percentage of transactions declined because of not available consecutive seats: %d/%d \n", percentageConsecutiveSeatsError,Ncust);
 
     //panta eletherwnoume ti mnimi pou exoume desmeusei.
     free(seatArray);
